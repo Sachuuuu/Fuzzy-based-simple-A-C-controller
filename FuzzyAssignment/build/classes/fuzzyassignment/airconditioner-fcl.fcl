@@ -1,0 +1,72 @@
+FUNCTION_BLOCK airconditioner
+
+VAR_INPUT
+	temperature : REAL;
+	humidity : REAL;
+        crowd : REAL;
+END_VAR
+
+VAR_OUTPUT
+	CompressedSpeed : REAL;
+END_VAR
+
+FUZZIFY temperature
+	TERM VeryLow := (0, (1-2)) (12.5, 0) ; 
+	TERM Low := (10, 0.25) (20,1) (30,0);
+	TERM High := (25, 0) (30, 1) (35,0);
+	TERM VeryHigh  := (30, 0) (45, 1);
+END_FUZZIFY
+
+FUZZIFY humidity
+	TERM Dry := (0, 1) (30,0) ;
+	TERM Comfortable := (20,0) (35,1) (50,0);
+	TERM Humid := (40,0) (60,1) (70,0);
+	TERM Sticky := (62,0) (100,1);
+END_FUZZIFY
+
+DEFUZZIFY CompressedSpeed
+	TERM Off := (0,1) (1,0);
+	TERM LowSpeed := (1,0) (48,1) (60,0);
+	TERM MediumSpeed := (50,0) (65,1) (80,0);
+	TERM FastSpeed := (72,0) (100,1);	
+	METHOD : COG;		
+	DEFAULT := 0;		
+END_DEFUZZIFY
+
+FUZZIFY crowd 
+	TERM LowCrowd := (0, 0) (15,1) (20,0);
+	TERM MidCrowd := (18, 0) (30, 1) (35,0);
+	TERM HighCrowd  := (32, 0) (65, 1);
+END_FUZZIFY
+
+RULEBLOCK rules
+	AND : MIN;
+	ACT : MIN;			
+	ACCU : MAX;			
+
+	RULE 1 : IF temperature IS VeryLow AND (humidity IS Dry OR crowd IS LowCrowd OR crowd IS MidCrowd) THEN CompressedSpeed IS Off;
+        RULE 2 : IF temperature IS VeryLow AND (humidity IS Dry OR crowd IS HighCrowd) THEN CompressedSpeed IS LowSpeed;
+	RULE 3 : IF temperature IS VeryLow AND humidity IS Comfortable THEN CompressedSpeed IS Off; 
+        RULE 4 : IF temperature IS VeryLow AND (humidity IS Comfortable OR crowd IS LowCrowd) THEN CompressedSpeed IS Off;
+        RULE 5 : IF temperature IS VeryLow AND humidity IS Comfortable AND (crowd IS MidCrowd OR crowd IS HighCrowd) THEN CompressedSpeed IS MediumSpeed; 
+	RULE 6 : IF temperature IS VeryLow AND humidity IS Humid THEN CompressedSpeed IS Off;
+        RULE 7 : IF temperature IS VeryLow AND humidity IS Humid AND (crowd IS MidCrowd OR crowd IS HighCrowd) THEN CompressedSpeed IS MediumSpeed;
+	RULE 8 : IF temperature IS VeryLow AND (humidity IS Sticky OR crowd IS HighCrowd) THEN CompressedSpeed IS LowSpeed;
+	RULE 9 : IF temperature IS Low AND humidity IS Dry OR crowd IS LowCrowd THEN CompressedSpeed IS Off;
+	RULE 10 : IF temperature IS Low AND humidity IS Comfortable THEN CompressedSpeed IS Off; 
+        RULE 11 : IF temperature IS Low AND humidity IS Comfortable AND (crowd IS MidCrowd OR crowd IS HighCrowd) THEN CompressedSpeed IS MediumSpeed;
+	RULE 12 : IF temperature IS Low AND humidity IS Humid THEN CompressedSpeed IS LowSpeed;
+        RULE 13 : IF temperature IS Low AND humidity IS Humid AND (crowd IS MidCrowd OR crowd IS HighCrowd) THEN CompressedSpeed IS MediumSpeed;
+	RULE 14 : IF temperature IS Low AND humidity IS Sticky THEN CompressedSpeed IS MediumSpeed;
+        RULE 15 : IF temperature IS Low AND humidity IS Sticky AND crowd IS HighCrowd THEN CompressedSpeed IS FastSpeed;
+	RULE 16 : IF temperature IS High AND humidity IS Dry THEN CompressedSpeed IS MediumSpeed;
+	RULE 17 : IF temperature IS High AND humidity IS Comfortable THEN CompressedSpeed IS MediumSpeed; 
+	RULE 18 : IF temperature IS High AND humidity IS Humid THEN CompressedSpeed IS FastSpeed;
+	RULE 19 : IF temperature IS High AND humidity IS Sticky THEN CompressedSpeed IS FastSpeed;
+	RULE 20 : IF temperature IS VeryHigh AND humidity IS Dry THEN CompressedSpeed IS MediumSpeed;
+	RULE 21 : IF temperature IS VeryHigh AND humidity IS Comfortable THEN CompressedSpeed IS FastSpeed; 
+	RULE 22 : IF temperature IS VeryHigh AND humidity IS Humid THEN CompressedSpeed IS FastSpeed;
+	RULE 23 : IF temperature IS VeryHigh AND humidity IS Sticky THEN CompressedSpeed IS FastSpeed;
+END_RULEBLOCK
+
+END_FUNCTION_BLOCK
